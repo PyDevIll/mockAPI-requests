@@ -1,5 +1,4 @@
 import requests
-import json
 from functools import reduce
 
 
@@ -36,7 +35,7 @@ def task_2_total_state_of_n_users(json_data, n: int):
             try:
                 state_value = float(record["state"])
             except ValueError:
-                print(f"Wrong state value ({record["state"]})")
+                print(f" ! Wrong state value ({record["state"]})")
                 return
 
             total_state += state_value
@@ -57,8 +56,15 @@ def task_4_find_eldest_user(json_data):
             try:
                 return datetime.strptime(datetime_str, "%Y-%m-%d")
             except ValueError:
-                print(f" ! Wrong date format ({record["birth"]})")
+                print(f" ! Wrong date format ({datetime_str})")
                 return None
+
+    def get_eldest(elder, user):
+        user_datetime = parse_datetime(user["birth"])
+        if user_datetime is None:
+            print(f" ! User skipped (id = {user['id']}; name = \"{user['name']}\"; birth = {user['birth']})")
+            return elder
+        return {"user_data": user, "time": user_datetime} if elder["time"] > user_datetime else elder
 
     print("Run task #4\n")
 
@@ -66,15 +72,8 @@ def task_4_find_eldest_user(json_data):
         "user_data": {},
         "time": datetime.now()
     }
-    for record in json_data:
-        user_datetime = parse_datetime(record["birth"])
-        if user_datetime is None:
-            print(f" ! User skipped (id = {record['id']}; name = \"{record['name']}\"; birth = {record['birth']})")
-            continue
 
-        if eldest_user["time"] > user_datetime:
-            eldest_user["time"] = user_datetime
-            eldest_user["user_data"] = record
+    eldest_user = reduce(get_eldest, json_data, eldest_user)
 
     if len(eldest_user["user_data"]) > 0:
         print("Eldest user:")
