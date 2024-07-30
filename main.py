@@ -1,5 +1,6 @@
 import requests
 import json
+from functools import reduce
 
 
 def get_data(url: str):
@@ -14,12 +15,13 @@ def get_data(url: str):
 
 def task_1_find_user_by_name(json_data, wanted_name: str):
     print("Run task #1\n")
+
     for record in json_data:
         if record["name"] == wanted_name:
             print(wanted_name + "'s id = " + record["id"])
             break
     else:
-        print(wanted_name + " is not found :(")
+        print(" ! " + wanted_name + " is not found :(")
 
     print()
 
@@ -40,9 +42,44 @@ def task_2_total_state_of_n_users(json_data, n: int):
             total_state += state_value
         print(f"Total state of first {n} users = {total_state:.2f}")
     else:
-        print("Too much user count specified")
+        print(" ! Too much user count specified")
 
     print()
+
+
+def task_4_find_eldest_user(json_data):
+    from datetime import datetime
+
+    def parse_datetime(datetime_str: str):
+        try:
+            return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+        except ValueError:
+            try:
+                return datetime.strptime(datetime_str, "%Y-%m-%d")
+            except ValueError:
+                print(f" ! Wrong date format ({record["birth"]})")
+                return None
+
+    print("Run task #4\n")
+
+    eldest_user = {
+        "user_data": {},
+        "time": datetime.now()
+    }
+    for record in json_data:
+        user_datetime = parse_datetime(record["birth"])
+        if user_datetime is None:
+            print(f" ! User skipped (id = {record['id']}; name = \"{record['name']}\"; birth = {record['birth']})")
+            continue
+
+        if eldest_user["time"] > user_datetime:
+            eldest_user["time"] = user_datetime
+            eldest_user["user_data"] = record
+
+    if len(eldest_user["user_data"]) > 0:
+        print("Eldest user:")
+        print("\tName = " + eldest_user["user_data"]["name"])
+        print("\tBorn = " + eldest_user["time"].strftime("%d.%m.%Y %H:%M:%S"))
 
 
 def main():
@@ -50,6 +87,7 @@ def main():
 
     task_1_find_user_by_name(data, "Wilson VonRueden")
     task_2_total_state_of_n_users(data, 76)
+    task_4_find_eldest_user(data)
 
 
 if __name__ == "__main__":
