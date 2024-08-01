@@ -69,6 +69,8 @@ def task_2_total_state_of_n_users(json_data, n: int):
             return await asyncio.gather(*tasks)
 
     def get_user_state(user):
+        if user is None:
+            return 0
         try:
             return float(user["state"])
         except ValueError:
@@ -79,10 +81,12 @@ def task_2_total_state_of_n_users(json_data, n: int):
 
     id_from = 1
     id_to = n+1
+    user_list = []
     while id_to < 101:
-        user_list = asyncio.run(get_user_list(range(id_from, id_to)))
-        # check for None in user_list
-        bad_id_count = reduce(lambda a, user: a + 1 if user is None else a, user_list, 0)
+        fetched_list = asyncio.run(get_user_list(range(id_from, id_to)))
+        user_list.extend(fetched_list)
+        # check for None in fetched_list
+        bad_id_count = reduce(lambda a, user: a + 1 if user is None else a, fetched_list, 0)
         if bad_id_count == 0:
             break
         # fetch more users instead of None-s
