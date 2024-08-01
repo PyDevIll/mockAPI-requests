@@ -5,7 +5,6 @@ from datetime import datetime
 import asyncio
 import aiohttp
 
-
 url = "https://66095c000f324a9a28832d7e.mockapi.io/users"
 
 
@@ -80,7 +79,7 @@ def task_2_total_state_of_n_users(json_data, n: int):
 
     id_from = 1
     id_to = n+1
-    while True:
+    while id_to < 101:
         user_list = asyncio.run(get_user_list(range(id_from, id_to)))
         # check for None in user_list
         bad_id_count = reduce(lambda a, user: a + 1 if user is None else a, user_list, 0)
@@ -89,6 +88,10 @@ def task_2_total_state_of_n_users(json_data, n: int):
         # fetch more users instead of None-s
         id_from = id_to
         id_to = id_from + bad_id_count
+    else:
+        print("Cannot find enough users")
+        print("___________")
+        return
 
     total_state = reduce(lambda a, user: a + get_user_state(user), user_list, 0)
 
