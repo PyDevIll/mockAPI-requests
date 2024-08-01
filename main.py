@@ -1,5 +1,17 @@
 import requests
 from functools import reduce
+from datetime import datetime
+
+
+def parse_datetime(datetime_str: str):
+    try:
+        return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except ValueError:
+        try:
+            return datetime.strptime(datetime_str, "%Y-%m-%d")
+        except ValueError:
+            print(f" ! Wrong date format ({datetime_str})")
+            return None
 
 
 def get_data(url: str):
@@ -47,18 +59,6 @@ def task_2_total_state_of_n_users(json_data, n: int):
 
 
 def task_4_find_eldest_user(json_data):
-    from datetime import datetime
-
-    def parse_datetime(datetime_str: str):
-        try:
-            return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-        except ValueError:
-            try:
-                return datetime.strptime(datetime_str, "%Y-%m-%d")
-            except ValueError:
-                print(f" ! Wrong date format ({datetime_str})")
-                return None
-
     def get_eldest(elder, user):
         user_datetime = parse_datetime(user["birth"])
         if user_datetime is None:
@@ -81,12 +81,33 @@ def task_4_find_eldest_user(json_data):
         print("\tBorn = " + eldest_user["time"].strftime("%d.%m.%Y %H:%M:%S"))
 
 
+def task_5_find_poorest_user(json_data):
+    def get_poorest(poorer, user):
+        user_state = float(user["state"])
+        return {"user_data": user, "state": user_state} if user_state < poorer["state"] else poorer
+
+    print("Run task #5\n")
+
+    poorest_user = {
+        "user_data": {},
+        "state": 999_999_999_999
+    }
+
+    poorest_user = reduce(get_poorest, json_data, poorest_user)
+
+    if len(poorest_user["user_data"]) > 0:
+        print("Poorest user:")
+        print("\tName = " + poorest_user["user_data"]["name"])
+        print(f"\tState = {poorest_user["state"]:.2f}")
+
+
 def main():
     data = get_data("https://66095c000f324a9a28832d7e.mockapi.io/users")
 
     task_1_find_user_by_name(data, "Wilson VonRueden")
     task_2_total_state_of_n_users(data, 76)
     task_4_find_eldest_user(data)
+    task_5_find_poorest_user(data)
 
 
 if __name__ == "__main__":
