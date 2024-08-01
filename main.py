@@ -1,8 +1,12 @@
 import calendar
-
 import requests
 from functools import reduce
 from datetime import datetime
+import asyncio
+import aiohttp
+
+
+url = "https://66095c000f324a9a28832d7e.mockapi.io/users"
 
 
 def parse_datetime(datetime_str: str):
@@ -16,14 +20,29 @@ def parse_datetime(datetime_str: str):
             return None
 
 
+def put_data(url: str, body):
+    response: requests.Response
+    response = requests.put(url, json=body)
+    if response.status_code != 200:
+        raise requests.RequestException("Unsuccessful request!")
+
+    return response.json()
+
+
 def get_data(url: str):
     response: requests.Response
-
     response = requests.get(url)
     if response.status_code != 200:
         raise requests.RequestException("Unsuccessful request!")
 
     return response.json()
+
+
+async def get_data_async(session: aiohttp.ClientSession, url: str):
+    async with session.get(url) as response:
+        if response.status != 200:
+            raise requests.RequestException("Unsuccessful request!")
+        return await response.json()
 
 
 def task_1_find_user_by_name(json_data, wanted_name: str):
@@ -35,29 +54,66 @@ def task_1_find_user_by_name(json_data, wanted_name: str):
             break
     else:
         print(" ! " + wanted_name + " is not found :(")
-
-    print()
+    print("___________")
 
 
 def task_2_total_state_of_n_users(json_data, n: int):
+    async def get_user_by_id(session, user_id):
+        try:
+            return await get_data_async(session, url + "/" + str(user_id))
+        except requests.RequestException:
+            return None
+
+    async def get_user_list(id_range):
+        async with aiohttp.ClientSession() as session:
+            tasks = [get_user_by_id(session, user_id) for user_id in id_range]
+            return await asyncio.gather(*tasks)
+
+    def get_user_state(user):
+        try:
+            return float(user["state"])
+        except ValueError:
+            print(f" ! Wrong state value ({user['state']}). Skipping user named \"{user['name']}\"")
+            return 0
+
     print("Run task #2\n")
-    total_state = 0
 
-    if n <= len(json_data):
-        for i in range(n):
-            record = json_data[i]
-            try:
-                state_value = float(record["state"])
-            except ValueError:
-                print(f" ! Wrong state value ({record["state"]})")
-                return
+    id_from = 1
+    id_to = n+1
+    while True:
+        user_list = asyncio.run(get_user_list(range(id_from, id_to)))
+        # check for None in user_list
+        bad_id_count = reduce(lambda a, user: a + 1 if user is None else a, user_list, 0)
+        if bad_id_count == 0:
+            break
+        # fetch more users instead of None-s
+        id_from = id_to
+        id_to = id_from + bad_id_count
 
-            total_state += state_value
-        print(f"Total state of first {n} users = {total_state:.2f}")
-    else:
-        print(" ! Too much user count specified")
+    total_state = reduce(lambda a, user: a + get_user_state(user), user_list, 0)
 
-    print()
+    print(f"Total state of first {n} users = {total_state:.2f}")
+    print("___________")
+
+
+def task_3_create_user_at_id(new_id):
+    import json
+
+    print("Run task #3\n")
+
+    new_user = {
+        "createdAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        "name": "PyDevIll",
+        "avatar": "https://avatars.githubusercontent.com/u/169006885?v=4",
+        "state": "10110010",
+        "birth": "1987-10-16T00:48:07.777Z",
+        "id": str(new_id)
+    }
+    response_json = put_data(url + '/' + str(new_id), new_user)
+    print("Created user:")
+    print(json.dumps(response_json, indent=4))
+
+    print("___________")
 
 
 def task_4_find_eldest_user(json_data):
@@ -81,6 +137,7 @@ def task_4_find_eldest_user(json_data):
         print("Eldest user:")
         print("\tName = " + eldest_user["user_data"]["name"])
         print("\tBorn = " + eldest_user["time"].strftime("%d.%m.%Y %H:%M:%S"))
+    print("___________")
 
 
 def task_5_find_poorest_user(json_data):
@@ -101,6 +158,7 @@ def task_5_find_poorest_user(json_data):
         print("Poorest user:")
         print("\tName = " + poorest_user["user_data"]["name"])
         print(f"\tState = {poorest_user["state"]:.2f}")
+    print("___________")
 
 
 def task_6_count_users_by_birth_month(month, json_data):
@@ -120,13 +178,15 @@ def task_6_count_users_by_birth_month(month, json_data):
         print("\tName: " + user["name"])
         print("\tBorn: " + user["birth"])
         print()
+    print("___________")
 
 
 def main():
-    data = get_data("https://66095c000f324a9a28832d7e.mockapi.io/users")
+    data = get_data(url)
 
     task_1_find_user_by_name(data, "Wilson VonRueden")
     task_2_total_state_of_n_users(data, 76)
+    task_3_create_user_at_id(69)
     task_4_find_eldest_user(data)
     task_5_find_poorest_user(data)
     task_6_count_users_by_birth_month(4, data)
