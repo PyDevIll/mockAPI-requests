@@ -1,3 +1,5 @@
+import calendar
+
 import requests
 from functools import reduce
 from datetime import datetime
@@ -101,6 +103,25 @@ def task_5_find_poorest_user(json_data):
         print(f"\tState = {poorest_user["state"]:.2f}")
 
 
+def task_6_count_users_by_birth_month(month, json_data):
+    def is_born_at_month(user) -> bool:
+        birth_date = parse_datetime(user["birth"])
+        if birth_date is None:
+            print(f" ! User skipped (id = {user['id']}; name = \"{user['name']}\"; birth = {user['birth']})")
+            return False
+        return birth_date.month == month
+
+    print("Run task #6\n")
+
+    result_user_list = list(filter(is_born_at_month, json_data))
+
+    print("Users born in " + calendar.month_name[month] + ": " + str(len(result_user_list)))
+    for user in result_user_list:
+        print("\tName: " + user["name"])
+        print("\tBorn: " + user["birth"])
+        print()
+
+
 def main():
     data = get_data("https://66095c000f324a9a28832d7e.mockapi.io/users")
 
@@ -108,6 +129,7 @@ def main():
     task_2_total_state_of_n_users(data, 76)
     task_4_find_eldest_user(data)
     task_5_find_poorest_user(data)
+    task_6_count_users_by_birth_month(4, data)
 
 
 if __name__ == "__main__":
